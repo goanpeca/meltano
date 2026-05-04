@@ -15,6 +15,7 @@ for Meltano projects running in ephemeral environments or in circumstances where
 - [System Database](#default-system-database)
 - [Local Filesystem](#local-file-system)
 - [Amazon AWS S3](#aws-s3)
+- [Backblaze B2](#backblaze-b2)
 - [Azure Blob Storage](#azure-blob-storage)
 - [Google Cloud Storage](#google-cloud-storage)
 - [Snowflake (External)](#snowflake-external)
@@ -35,7 +36,7 @@ No extra work is needed to use the default system database or local filesystem a
 
 To use a cloud storage backend, install Meltano using one of the following [extras](https://peps.python.org/pep-0508/#extras):
 
-- `meltano[s3]` to use the AWS S3 state backend.
+- `meltano[s3]` to use the AWS S3 state backend (also required for the [Backblaze B2](#backblaze-b2) backend, which reuses `boto3`).
 - `meltano[azure]` to use the Azure Blob Storage state backend.
 - `meltano[gcs]` to use the Google Cloud Storage state backend.
 
@@ -148,6 +149,23 @@ The `AWS_IGNORE_CONFIGURED_ENDPOINT_URLS` environment variable won't have any ef
 :::
 
 For reference, read the [AWS documentation on service-specific endpoints](https://docs.aws.amazon.com/sdkref/latest/guide/feature-ss-endpoints.html).
+
+### Backblaze B2
+
+[Backblaze B2](https://www.backblaze.com/cloud-storage) exposes an [S3-compatible API](https://www.backblaze.com/docs/cloud-storage-s3-compatible-api), so the `b2` state backend reuses the [AWS S3](#aws-s3) implementation with B2-named settings and defaults.
+
+To store state remotely in B2, set the `state_backend.uri` setting to `b2://<your bucket name>/<prefix for state JSON blobs>`.
+
+To authenticate to B2, create a bucket-scoped [Application Key](https://www.backblaze.com/docs/cloud-storage-application-keys) and provide it via either of the following methods:
+
+- Configure the `state_backend.b2.application_key_id` and `state_backend.b2.application_key` settings.
+- Set the `B2_APPLICATION_KEY_ID` and `B2_APPLICATION_KEY` environment variables (the [Backblaze CLI convention](https://www.backblaze.com/docs/cloud-storage-command-line-tools) is honored as a fallback so other B2-aware tools share the same credentials).
+
+If B2 credentials are not provided via either of these methods, Meltano will not be able to authenticate to B2 and state operations will fail.
+
+#### Endpoint URL
+
+The default `state_backend.b2.endpoint_url` is `https://s3.us-west-004.backblazeb2.com`. B2 buckets are pinned to a single region; if your bucket lives in another region, override the setting with the matching endpoint (visible on the Bucket detail page in the Backblaze console). The S3 backend's existing `state_backend.s3.endpoint_url` still works for B2 buckets. The dedicated `b2` backend is opt-in for projects that prefer B2-named settings and defaults.
 
 ### Google Cloud Storage
 
